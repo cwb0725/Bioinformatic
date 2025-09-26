@@ -1,0 +1,103 @@
+### R ###
+# 过滤
+feature_ori <- subset(
+  feature_ori,
+  !is.na(organelle_area_raw) & organelle_area_raw >= 0.306
+)
+
+
+
+# 依赖
+suppressPackageStartupMessages({
+  if (!requireNamespace("data.table", quietly = TRUE)) install.packages("data.table")
+})
+library(data.table)
+
+# 假定你的原始数据框叫 df；若你的对象叫 feature_ori 或 features_organelles，就改为：
+df <- feature_ori
+# df <- features_organelles
+setDT(df)
+
+# —— 列名自动识别（不再提前丢弃 x_raw/y_raw）——
+t_col <- if ("t" %in% names(df)) "t" else {
+  cand <- intersect(c("frame","frame_id","time","time_index"), names(df))
+  if (length(cand)==0) stop("未找到帧号列 t / frame / frame_id")
+  cand[1]
+}
+lab_col <- if ("label" %in% names(df)) "label" else {
+  cand <- intersect(c("label_id","organelle_label","seg_label"), names(df))
+  if (length(cand)==0) stop("未找到实例ID列 label / label_id / organelle_label / seg_label")
+  cand[1]
+}
+par_col <- grep("reassigned.*label", names(df), ignore.case = TRUE, value = TRUE)
+if (length(par_col)==0) stop("未找到父标签列（包含 'reassigned' 和 'label'）")
+par_col <- par_col[1]
+
+# 尝试识别坐标列（支持 x_raw / x.raw 大小写）
+x_col <- grep("^x[_\\.]?raw$", names(df), ignore.case = TRUE, value = TRUE)
+y_col <- grep("^y[_\\.]?raw$", names(df), ignore.case = TRUE, value = TRUE)
+has_xy <- length(x_col)==1 && length(y_col)==1
+if (has_xy) { x_col <- x_col[1]; y_col <- y_col[1] }
+
+# —— 清洗类型（保留所有列，不丢坐标）——
+df <- df[ is.finite(get(t_col)) & !is.na(get(par_col)) ]
+df[, (t_col) := as.integer(get(t_col))]
+df[, (lab_col) := as.integer(get(lab_col))]
+df[, (par_col) := as.integer(get(par_col))]
+
+# —— 计算父ID在每帧的碎片数 n_frag —— 
+frag <- df[, .(n_frag = uniqueN(get(lab_col))), by = .(t = get(t_col), parent_id = get(par_col))]
+
+# —— 补全网格并做帧差 dn —— 
+t_seq <- seq(min(frag$t), max(frag$t))
+parents <- unique(frag$parent_id)
+full <- CJ(t = t_seq, parent_id = parents, unique = TRUE)[frag, on = .(t, parent_id)]
+full[is.na(n_frag), n_frag := 0]
+setorder(full, parent_id, t)
+full[, dn := n_frag - shift(n_frag), by = parent_id]
+
+# —— 每帧事件计数（t-1→t 记在 t）——
+events <- full[t %in% t_seq[-1],
+               .(fission_count = as.integer(sum(pmax(dn, 0), na.rm = TRUE)),
+                 fusion_count  = as.integer(sum(pmax(-dn, 0), na.rm = TRUE)),
+                 net_change    = sum(dn, na.rm = TRUE)),
+               by = .(frame = t)
+]
+
+# —— 全局差值法（校验）——
+per_frame <- df[, .(curr_labels   = uniqueN(get(lab_col)),
+                    parent_labels = uniqueN(get(par_col))),
+                by = .(frame = get(t_col))]
+per_frame[, delta := curr_labels - parent_labels]
+per_frame[, delta_change := delta - shift(delta)]
+events <- per_frame[events, on = .(frame)]
+
+# —— 事件明细（父ID级），并补坐标 —— 
+detail <- full[t %in% t_seq[-1] & !is.na(dn) & dn != 0,
+               .(frame = t, parent_id, n_frag, dn,
+                 event_type = ifelse(dn > 0, "fission", "fusion"))]
+setorder(detail, frame, parent_id)
+
+if (has_xy) {
+  # 对每个 (t, parent_id) 汇总该帧该父ID下所有子实例的坐标代表值（中位数）
+  xy_per_parent_frame <- df[, .(
+    x_raw_med = median(get(x_col), na.rm = TRUE),
+    y_raw_med = median(get(y_col), na.rm = TRUE),
+    n_pts     = .N
+  ),
+  by = .(frame = get(t_col), parent_id = get(par_col))
+  ]
+  detail <- xy_per_parent_frame[detail, on = .(frame, parent_id)]
+} else {
+  warning("找不到 x_raw / y_raw 列（或名字不匹配），detail 将不含坐标。可检查 names(df)。")
+}
+
+# —— 查看结果（前几行）——
+print(head(events, 10))
+print(head(detail, 20))
+print(head(per_frame, 10))
+
+# —— 可选写出 —— 
+fwrite(events,  "ff_event_counts.csv")
+fwrite(detail,  "ff_event_details_with_xy.csv")
+fwrite(per_frame, "ff_per_frame_summary.csv")
