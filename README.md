@@ -16,3 +16,7 @@ python export_mitograph_like.py \
   --mask_glob "/path/mask_frames/*.tif" \   # 可选
   --raw_glob  "/path/raw_frames/*.tif" \    # 可选
   --px_um 0.1 --prune_len 8 --min_cc 20
+
+####去除小碎片 以及上色 ######（Fiji）
+Plugins → MorphoLibJ → Binary Images → Area Opening…
+Plugins → MorphoLibJ → Binary Images → Connected Components Labeling
