@@ -1,0 +1,78 @@
+# save as tile_tiff.py
+import os, math, argparse
+import numpy as np
+import tifffile as tiff
+
+def to_uint8(img):
+    """把 16-bit 线性拉伸到 8-bit；若已是 8-bit 则原样返回。"""
+    if img.dtype == np.uint16:
+        # 用全幅线性拉伸；若想更稳健可改为按百分位拉伸
+        return (img / 257).astype(np.uint8)  # 65535/255≈257
+    if img.dtype != np.uint8:
+        # 其他类型（float等）压到[0,1]再映射到[0,255]
+        x = img.astype(np.float32)
+        x = (x - x.min()) / max(1e-8, (x.max() - x.min()))
+        return (x * 255).astype(np.uint8)
+    return img
+
+def tile_single_frame(img2d, tile, stride):
+    H, W = img2d.shape
+    tiles = []
+    ys = list(range(0, H - tile + 1, stride))
+    xs = list(range(0, W - tile + 1, stride))
+    # 若不能整除，最后一块对齐到右/下边缘
+    if ys[-1] != H - tile: ys.append(H - tile)
+    if xs[-1] != W - tile: xs.append(W - tile)
+    for y in ys:
+        for x in xs:
+            tiles.append(((y, x), img2d[y:y+tile, x:x+tile]))
+    return tiles
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--input", required=True, help="输入 TIF（可以是单帧或多帧堆栈）")
+    ap.add_argument("--outdir", required=True, help="输出文件夹")
+    ap.add_argument("--tile", type=int, default=512, help="块大小（默认512）")
+    ap.add_argument("--overlap", type=int, default=0, help="重叠像素（默认0）")
+    ap.add_argument("--to8bit", action="store_true", help="保存前转换为8-bit")
+    args = ap.parse_args()
+
+    os.makedirs(args.outdir, exist_ok=True)
+    arr = tiff.imread(args.input)  # (H,W) 或 (T,H,W) 或 (Z,H,W)
+    arr = np.squeeze(arr)
+    base = os.path.splitext(os.path.basename(args.input))[0]
+    # 统一为 (N,H,W)
+    if arr.ndim == 2:
+        arr = arr[None, ...]
+    elif arr.ndim == 3:
+        pass
+    else:
+        raise ValueError(f"不支持的维度: {arr.shape}")
+
+    tile = args.tile
+    stride = tile - args.overlap
+    if stride <= 0:
+        raise ValueError("overlap 必须 < tile")
+
+    for i, frame in enumerate(arr):
+        if args.to8bit:
+            frame = to_uint8(frame)
+
+        H, W = frame.shape
+        tiles = tile_single_frame(frame, tile, stride)
+        for (y, x), patch in tiles:
+            # 命名：f{帧}_y{坐标}_x{坐标}_sz{tile}.tif
+            fname = f"{base}_f{i:04d}_y{y:04d}_x{ x:04d}_sz{tile}.tif"
+            tiff.imwrite(os.path.join(args.outdir, fname), patch,
+                         photometric='minisblack', compression=None)
+
+    print(f"完成：共 {arr.shape[0]} 帧，已输出到：{args.outdir}")
+
+if __name__ == "__main__":
+    main()
+####用法#####
+ python ./MoDL/train_512×512/splice_512.py --input C:\Bioinformatic\CWB_data\Bioinformatic\Modl_change\MoDL\train\frame_01_2048x2048.tif --outdir C:\Bioinformatic\CWB_data\Bioinformatic\Modl_change\MoDL\train_512×512\train --to8bit
+
+
+
+
