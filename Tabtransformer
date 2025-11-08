@@ -1,0 +1,9 @@
+python tabtransformer_full_pipeline.py \
+  --data exp_all.csv \
+  --outdir tt_out \
+  --target type \
+  --folds 5 --epochs 50 --batch_size 512 \
+  --lr 1e-3 --weight_decay 1e-4 \
+  --d_model 128 --depth 4 --heads 4 \
+  --dropout 0.2 --label_smoothing 0.05 \
+  --perm_imp --perm_repeats 3
