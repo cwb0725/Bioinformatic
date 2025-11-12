@@ -20,3 +20,8 @@ python export_mitograph_like.py \
 ####去除小碎片 以及上色 ######（Fiji）
 Plugins → MorphoLibJ → Binary Images → Area Opening…
 Plugins → MorphoLibJ → Binary Images → Connected Components Labeling
+
+
+###Tabtransformer###
+##训练##
+CUBLAS_WORKSPACE_CONFIG=:4096:8 python /home/CWB/MTdata/pythonproject/tabtransformer_full_pipeline_v2p3.py   --data ./MT_tiff/exp_all_clean.csv   --outdir ./MTtiff/exp_all_out   --target type   --folds 5 --epochs 100 --batch_size 256   --lr 3e-4 --weight_decay 1e-6   --d_model 256 --depth 4 --heads 8   --dropout 0.05 --label_smoothing 0.0   --scaler robust --rare_threshold 2  --perm_repeats 1  --no_amp
