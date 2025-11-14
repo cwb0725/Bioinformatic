@@ -7,3 +7,18 @@ python tabtransformer_full_pipeline.py \
   --d_model 128 --depth 4 --heads 4 \
   --dropout 0.2 --label_smoothing 0.05 \
   --perm_imp --perm_repeats 3
+
+
+pip install -U captum
+
+python fast_explain_hybrid_v231_exportall.py \
+  --model_outdir ./MTtiff/exp_all_out_v231 \
+  --input_csv    ./MT_tiff/new_samples.csv \
+  --output_dir   ./MT_tiff/explain_all \
+  --id_cols id,t \
+  --fold fold_0 \
+  --batch_size 256 \
+  --micro_batch_size 64 \
+  --ig_steps 16 \
+  --no_amp \
+  --save_raw
