@@ -1,0 +1,1 @@
+python cli_parallel.py --directory /data/mito_images --substring mito --x 0.030589 --y 0.030589 --T 10.0 --workers 8
