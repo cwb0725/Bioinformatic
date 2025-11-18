@@ -22,3 +22,19 @@ python fast_explain_hybrid_v231_exportall.py \
   --ig_steps 16 \
   --no_amp \
   --save_raw
+
+ python ./pythonproject/tabtransformer_full_pipeline_v2p3_1_predict.py --model_outdir ./MTtiff/exp_all_out --input_csv ./MT_tiff/exp_test_clean.csv --output_csv ./MT_tiff/new_exp_test.csv --id_cols row_id --no_amp
+
+
+python tabtransformer_full_pipeline_v2p3_1_train.py \
+  --data ./MT_tiff/exp_all_clean.csv \
+  --outdir ./MTtiff/exp_all_out_v231 \
+  --target type \
+  --folds 5 --epochs 80 --batch_size 256 \
+  --lr 3e-4 --weight_decay 1e-5 \
+  --d_model 256 --depth 4 --heads 8 \
+  --dropout 0.05 --label_smoothing 0.0 \
+  --scaler none \
+  --rare_threshold 2 \
+  --perm_imp --perm_repeats 3 \
+  --no_amp
