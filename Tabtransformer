@@ -1,3 +1,4 @@
+##########
 python tabtransformer_full_pipeline.py \
   --data exp_all.csv \
   --outdir tt_out \
@@ -8,7 +9,7 @@ python tabtransformer_full_pipeline.py \
   --dropout 0.2 --label_smoothing 0.05 \
   --perm_imp --perm_repeats 3
 
-
+##########
 pip install -U captum
 
 python fast_explain_hybrid_v231_exportall.py \
@@ -23,9 +24,10 @@ python fast_explain_hybrid_v231_exportall.py \
   --no_amp \
   --save_raw
 
+##########
  python ./pythonproject/tabtransformer_full_pipeline_v2p3_1_predict.py --model_outdir ./MTtiff/exp_all_out --input_csv ./MT_tiff/exp_test_clean.csv --output_csv ./MT_tiff/new_exp_test.csv --id_cols row_id --no_amp
 
-
+#########
 python tabtransformer_full_pipeline_v2p3_1_train.py \
   --data ./MT_tiff/exp_all_clean.csv \
   --outdir ./MTtiff/exp_all_out_v231 \
