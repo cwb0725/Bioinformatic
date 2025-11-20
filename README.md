@@ -1,4 +1,4 @@
-# Bioinformatic_transkele
+# Bioinformatic_Mtitochondria
 #单帧处理
 python export_mitograph_like.py \
   --skel /path/skeleton.tif \
