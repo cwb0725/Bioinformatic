@@ -24,6 +24,10 @@ python fast_explain_hybrid_v231_exportall.py \
   --no_amp \
   --save_raw
 
+###########
+./run_all.sh /home/CWB/MTdata/MT_tiff/cos7wt_tmre 0 0.030589 0.030589 10.0 32
+
+
 ##########
  python ./pythonproject/tabtransformer_full_pipeline_v2p3_1_predict.py --model_outdir ./MTtiff/exp_all_out --input_csv ./MT_tiff/exp_test_clean.csv --output_csv ./MT_tiff/new_exp_test.csv --id_cols row_id --no_amp
 
