@@ -1,0 +1,11 @@
+import numpy as np
+from tifffile import imwrite
+
+layer = viewer.layers[0]
+labels = layer.data
+
+binary = labels > 0              # 所有非0都视为前景
+binary_uint8 = (binary * 255).astype(np.uint8)
+
+imwrite("mask_binary.tif", binary_uint8)
+print("✅ label 转二值完成")
