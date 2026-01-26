@@ -1,2 +1,0 @@
-### test ###
-python test_attunet2d.py --ckpt ./checkpoints/attunet2d_epoch_49.pth --img_dir /home/CWB/Swin_unet/test/exp_223800_6.tif --out_dir /home/CWB/Swin_unet/test/result/
